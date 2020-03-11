@@ -1,6 +1,6 @@
 import requests
 import json
-from flask import Flask, jsonify
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
@@ -15,8 +15,7 @@ def hello():
 			diccionario[llave_region] = []
 		if objeto["comuna_nombre"] not in diccionario[llave_region]:
 			diccionario[llave_region].append(objeto["comuna_nombre"])
-
-	return jsonify(diccionario)
+	return render_template('plantilla.html', regiones=diccionario)
 
 if __name__ == "__main__":
 	app.run(debug=True)
