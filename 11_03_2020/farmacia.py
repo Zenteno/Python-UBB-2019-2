@@ -18,7 +18,7 @@ def hello():
 	return render_template('plantilla.html', regiones=diccionario)
 
 @app.route('/farmaciasJson')
-def farmacias():
+def farmacias_json():
 	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
 	r  =  requests.get(url)
 	return jsonify(r.json())
