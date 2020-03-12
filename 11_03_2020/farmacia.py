@@ -1,6 +1,6 @@
 import requests
 import json
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
 
@@ -28,7 +28,17 @@ def farmacias_json():
 def farmacias():
 	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
 	r  =  requests.get(url)
-	return render_template("farmacias.html",farmacies = r.json())
+	ciudad = request.args.get('ciudad', default = "", type = str)
+	farmacia = request.args.get('farmacia', default = "", type = str)
+	farmacias_ = r.json()
+	
+	if ciudad!="":
+		farmacias_ = [f for f in farmacias_ if f["comuna_nombre"].upper()==ciudad.upper()]
+		#farmacias_ = filter(lambda x: x["comuna_nombre"].upper()==ciudad.upper(), farmacias_)
+	if farmacia!="":
+		farmacias_ = [f for f in farmacias_ if f["local_nombre"].upper()==farmacia.upper()]
+		#farmacias_ = filter(lambda x: x["local_nombre"].upper()==farmacia.upper(), farmacias_)
+	return render_template("farmacias.html",farmacies = farmacias_)
 
 if __name__ == "__main__":
 	app.run(debug=True)
