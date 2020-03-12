@@ -1,6 +1,6 @@
 import requests
 import json
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
@@ -16,6 +16,19 @@ def hello():
 		if objeto["comuna_nombre"] not in diccionario[llave_region]:
 			diccionario[llave_region].append(objeto["comuna_nombre"])
 	return render_template('plantilla.html', regiones=diccionario)
+
+@app.route('/farmaciasJson')
+def farmacias():
+	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
+	r  =  requests.get(url)
+	return jsonify(r.json())
+
+
+@app.route('/farmacias')
+def farmacias():
+	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
+	r  =  requests.get(url)
+	return render_template("farmacias.html",farmacias = r.json())
 
 if __name__ == "__main__":
 	app.run(debug=True)
