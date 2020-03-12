@@ -28,7 +28,7 @@ def farmacias():
 def farmacias():
 	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
 	r  =  requests.get(url)
-	return render_template("farmacias.html",farmacias = r.json())
+	return render_template("farmacias.html",farmacies = r.json())
 
 if __name__ == "__main__":
 	app.run(debug=True)
