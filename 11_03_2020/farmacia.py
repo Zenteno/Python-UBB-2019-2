@@ -1,15 +1,47 @@
 import requests
 import json
 from flask import Flask, render_template, jsonify, request
+from flaskext.mysql import MySQL
+import pymysql
+import pymysql.cursors
+
 
 app = Flask(__name__)
+app.config["MYSQL_DATABASE_USER"] = "root"
+app.config["MYSQL_DATABASE_DB"]  = "farmacias"
 
+mysql = MySQL(app)
+mysql.connect_args["autocommit"] = True
+mysql.connect_args["cursorclass"] = pymysql.cursors.DictCursor
+
+
+@app.route('/actualizaFarmacias')
+def actualiza():
+	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
+	r  =  requests.get(url)
+	cursor = mysql.get_db().cursor()
+	cursor.execute("TRUNCATE farmacia")
+	
+	c = 0
+	for objeto in json.loads(r.text[1:]):
+		try:
+			lat = float(objeto["local_lat"])
+			lng = float(objeto["local_lng"])
+			sql = "INSERT INTO farmacia (nombre_farmacia, direccion, ciudad, latitud, longitud, telefono)"
+			sql+= " VALUES (%s,%s,%s,%s,%s,%s)"
+			cursor.execute(sql,(objeto["local_nombre"],objeto["local_direccion"],objeto["comuna_nombre"],lat,lng,objeto["local_telefono"]))
+			c+=1
+		except Exception as e:
+			print(e)
+			continue
+	return (f"Se han insertado {c} registros", 200)
+		
 @app.route('/')
 def hello():
 	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
 	r  =  requests.get(url)
 	diccionario = {}
-	for objeto in r.json():
+	for objeto in json.loads(r.text[1:]):
 		llave_region = f"region_{objeto['fk_region']}" 
 		if llave_region not in diccionario:
 			diccionario[llave_region] = []
@@ -19,25 +51,32 @@ def hello():
 
 @app.route('/farmaciasJson')
 def farmacias_json():
-	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
-	r  =  requests.get(url)
-	return jsonify(r.json())
+	cursor = mysql.get_db().cursor()
+	cursor.execute("SELECT * FROM farmacia")
+	return jsonify(cursor.fetchall())
 
 
 @app.route('/farmacias')
 def farmacias():
-	url = "https://farmanet.minsal.cl/index.php/ws/getLocales"
-	r  =  requests.get(url)
+	cursor = mysql.get_db().cursor()
+	
 	ciudad = request.args.get('ciudad', default = "", type = str)
 	farmacia = request.args.get('farmacia', default = "", type = str)
-	farmacias_ = r.json()
 	
-	if ciudad!="":
-		farmacias_ = [f for f in farmacias_ if f["comuna_nombre"].upper()==ciudad.upper()]
-		#farmacias_ = filter(lambda x: x["comuna_nombre"].upper()==ciudad.upper(), farmacias_)
-	if farmacia!="":
-		farmacias_ = [f for f in farmacias_ if f["local_nombre"].upper()==farmacia.upper()]
-		#farmacias_ = filter(lambda x: x["local_nombre"].upper()==farmacia.upper(), farmacias_)
+	sql = "SELECT * FROM farmacia"
+	cursor.execute(sql)
+	
+	if farmacia!="" and ciudad!="":
+		sql+=" WHERE nombre_farmacia = %s AND ciudad= %s"
+		cursor.execute(sql, (farmacia.upper(),ciudad.upper()))
+	elif ciudad!="":
+		sql +=" WHERE ciudad = %s"
+		cursor.execute(sql, (ciudad.upper(),))
+	elif farmacia!="":
+		sql+=" WHERE nombre_farmacia = %s"
+		cursor.execute(sql, (farmacia.upper(),))
+
+	farmacias_ = cursor.fetchall()
 	return render_template("farmacias.html",farmacies = farmacias_)
 
 if __name__ == "__main__":
