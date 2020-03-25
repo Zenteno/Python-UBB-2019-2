@@ -56,13 +56,18 @@ def farmacias_json():
 	return jsonify(cursor.fetchall())
 
 
-@app.route('/farmacias')
+@app.route('/farmacias', methods=["GET","POST"])
 def farmacias():
 	cursor = mysql.get_db().cursor()
 	
-	ciudad = request.args.get('ciudad', default = "", type = str)
-	farmacia = request.args.get('farmacia', default = "", type = str)
-	
+	if request.method == "GET":
+		ciudad = request.args.get('ciudad', default = "", type = str)
+		farmacia = request.args.get('farmacia', default = "", type = str)
+
+	if request.method == "POST":
+		ciudad = request.form["ciudad"]
+		farmacia = request.form["farmacia"]
+		
 	sql = "SELECT * FROM farmacia"
 	cursor.execute(sql)
 	
@@ -77,7 +82,7 @@ def farmacias():
 		cursor.execute(sql, (farmacia.upper(),))
 
 	farmacias_ = cursor.fetchall()
-	return render_template("farmacias.html",farmacies = farmacias_)
+	return render_template("farmacias.html",farmacies = farmacias_, ciudad = ciudad, farmacia = farmacia)
 
 if __name__ == "__main__":
 	app.run(debug=True)
